@@ -118,20 +118,6 @@ class connection_thread():
         except Exception as e:
             logging.error("Error: " + type(e).__name__ + str(e))
 
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -158,10 +144,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--port", action="store", dest="SERVER_PORT", default=SERVER_PORT)
     args = parser.parse_args()
-    SERVER_PORT = args.SERVER_PORT
+    SERVER_PORT = int(args.SERVER_PORT)
 
     # logging.basicConfig(level=os.environ.get("LOGLEVEL", "INFO"))
-    logging.basicConfig(filename='example.log', encoding='utf-8', 
+    logging.basicConfig(filename='h1/server.log', encoding='utf-8', 
                         level=logging.DEBUG, filemode='w',
                         format='%(asctime)s - %(levelname)-7s - %(message)s')
     logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))

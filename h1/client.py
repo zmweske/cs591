@@ -48,7 +48,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     SERVER_ADDR = args.SERVER_ADDR
-    SERVER_PORT = args.SERVER_PORT
+    SERVER_PORT = int(args.SERVER_PORT)
     USER = args.USER
 
     # print(SERVER_ADDR, SERVER_PORT, USER)
