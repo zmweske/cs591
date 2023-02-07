@@ -112,7 +112,7 @@ class connection_thread():
                             self.stop = True
                         elif message == "LIST":
                             # response = ('\n'.join(map(lambda u: u[u.find(':')+1:], list(ACTIVE_USERS.keys())))).encode()
-                            response = ('\n'.join(list(ACTIVE_USERNAMES.values()))).encode()
+                            response = ("Logged in users: " + ", ".join(list(ACTIVE_USERNAMES.values()))).encode()
                             self.outgoing.put(response)
                         elif message != "":
                             message = json.dumps({"user": self.user, "uuid": self.uuid, "action": "message", "message": message})
