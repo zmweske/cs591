@@ -94,7 +94,7 @@ class chat_client():
                 chat = '\x04'
             if chat.strip() == "":
                 continue
-            self.client_socket.send((chat).encode())
+            self.client_socket.send((chat).encode())  # TODO convert to action instead of message with json?
             if chat == '\x04' or chat == "QUIT":
                 print("Exiting client...")
                 self.STOP_COMMAND = True

@@ -7,6 +7,7 @@
 Run `python3 server.py --help` to get the same information
 
 - `-p` and `--port` define the initial connection port. Default is 8888
+- The default subsequent port range is set with the variable PORT_RANGE and is by default set inclusively to 9001-9999
 
 
 ## Usage: client.py

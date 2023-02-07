@@ -32,6 +32,7 @@ STOP_COMMAND = False
 PORT_RANGE = [9001, 9999]
 
 
+# the thread spawned when a new client connects to the server
 class connection_thread():
     def __init__(self, port, uuid, user, message_sender, incoming_messages):
         self.port = port
@@ -50,7 +51,8 @@ class connection_thread():
         self.client_socket, addr = self.server_socket.accept()
         logging.info("User connect on port " + str(self.port) + ": " + self.uuid + 
                      {False: "(" + user + ")", True: "(without username)"}[user==uuid])
-                
+
+        # spawn threads
         self.broadcast_listener = threading.Thread(target=self.listen_to_broadcast)
         self.client_listener = threading.Thread(target=self.accept_message)
         self.client_sender = threading.Thread(target=self.send_to_client)
@@ -62,8 +64,7 @@ class connection_thread():
         self.client_listener.join()
         self.stop = True
         self.broadcast_listener.join()
-        try:  # client socket may already be closed, but
-              #   this will prevent a blocking client thread
+        try:  # client socket may already be closed, but this will prevent a blocking client thread
             self.client_socket.send(b' ')
         except BrokenPipeError as e:
             pass
@@ -74,6 +75,7 @@ class connection_thread():
         logging.info("Closing server connection " + str(self.port) + "...")
         self.client_socket.close()
 
+    # used to monitor all outgoing messages and send them over the socket back to the client
     def send_to_client(self):
         while not self.stop:
             to_send = self.outgoing.get()
@@ -85,7 +87,8 @@ class connection_thread():
                 self.stop = True
             except Exception as e:
                 logging.warning("80: " + type(e).__name__ + ' ' + str(e))
-        
+    
+    # a listens to the messages coming from other users (rebroadcasted by the server) or server messages
     def listen_to_broadcast(self):
         while not self.stop:
             json_msg = self.incoming.get()
@@ -96,14 +99,15 @@ class connection_thread():
             message = json_msg["user"] + {False:": ",True:" "}[json_msg["action"]=="CONNECT"] + json_msg["message"]
             message = message.encode()
             self.outgoing.put(message)
-            
+    
+    # the primary running thread for this class
     def accept_message(self):
         try:
             while not self.stop:
                 response = b""
                 try:
                     message = self.client_socket.recv(1024).decode()
-                    try:
+                    try:  # TODO convert to check action?
                         if message == "QUIT" or message == '\x04':
                             response = b"Closing server connection...goodbye!"
                             message = json.dumps({"user": self.user, "uuid": self.uuid, "action": "QUIT", "message": "Logged off"})
@@ -114,13 +118,12 @@ class connection_thread():
                             # response = ('\n'.join(map(lambda u: u[u.find(':')+1:], list(ACTIVE_USERS.keys())))).encode()
                             response = ("Logged in users: " + ", ".join(list(ACTIVE_USERNAMES.values()))).encode()
                             self.outgoing.put(response)
-                        elif message != "":
+                        elif message != "":  # 
                             message = json.dumps({"user": self.user, "uuid": self.uuid, "action": "message", "message": message})
                             message = message.encode()
                             self.messages_broadcaster.put(message)
-                            # response = b"echo:" + message  # only used for server to client echo TODO REMOVE
-                            # self.outgoing.put(response)    # only used for server to client echo TODO REMOVE
-                    except BrokenPipeError as e:
+                            # self.outgoing.put(b"echo:" + message)  # only used for server to client echo
+                    except BrokenPipeError as e:  # catch garbage collected queue or closed socket (user logged out)
                         self.stop = True
                     except Exception as e:
                         logging.error("118: " + type(e).__name__ + ' ' + str(e))
@@ -128,8 +131,9 @@ class connection_thread():
                 except Exception as e:
                     logging.error("124: " + type(e).__name__ + ' ' + str(e))
                     break
-            time.sleep(1)
+            time.sleep(1)  # used to allow everything to settle before shutting down server thread
             self.stop = True
+            # unblock other threads waiting on queue.Queue.get()
             self.incoming.put(" ")
             self.outgoing.put(" ")
         except Exception as e:
@@ -138,7 +142,8 @@ class connection_thread():
 
 
 
-
+# receives messages from each thread.
+# All json messages put onto the MESSAGES queue.Queue() will be forward to each applicable user thread
 def broadcast_listener():
     while not STOP_COMMAND:
         message = MESSAGES.get()
@@ -154,13 +159,15 @@ def broadcast_listener():
             if uuid != i:
                 if i in ACTIVE_USERS and isinstance(ACTIVE_USERS[i], queue.Queue):
                     try:
+                        # send message to other users
                         ACTIVE_USERS[i].put(json_msg)
                     except BrokenPipeError as e:
+                        # if the queue does not exist, then the user client has been forcibly closed without logging out already
                         LOGGING_OUT.put(i)
+                        
+        # remove users that have logged out
         while not LOGGING_OUT.empty():
             temp = LOGGING_OUT.get_nowait()
-            # logging.info("user " + temp + (("") if (temp not in ACTIVE_USERNAMES or ACTIVE_USERNAMES[temp] == temp) 
-            #              else "(" + ACTIVE_USERNAMES[temp] + ")") + " logged out...")
             if temp in ACTIVE_USERS:
                 del ACTIVE_USERS[temp]
             if temp in ACTIVE_USERNAMES:
@@ -173,6 +180,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     SERVER_PORT = int(args.SERVER_PORT)
 
+    # set up logging to file as well as stdout
     logging.basicConfig(filename='h1/server.log', encoding='utf-8', 
                         level=logging.DEBUG, filemode='w',
                         format='%(asctime)s - %(levelname)-7s - %(message)s')
@@ -186,12 +194,13 @@ if __name__ == "__main__":
     server_socket.listen(20)
     logging.info("Serving on localhost:" + str(SERVER_PORT))
     
+    # start broadcast listener thread (monitoring MESSAGES queue)
     broadcast_listener_thread = threading.Thread(target=broadcast_listener)
     broadcast_listener_thread.start()
     THREADS.put_nowait(broadcast_listener_thread) 
 
     while not STOP_COMMAND:
-        # accept/establish new connections in a new thread
+        # accept new client, process CONNECT request and prepare new connection_thread from message
         logging.info("Ready to accept new client on main thread...")
         client_socket, addr = server_socket.accept()
         if not (message := client_socket.recv(1024).decode()).startswith("CONNECT"):
@@ -206,6 +215,7 @@ if __name__ == "__main__":
         uuid = json_msg["uuid"]
         user = json_msg["user"]
         ACTIVE_USERNAMES[uuid] = user
+        # select new random port in range and send to client
         client_port = random.randrange(PORT_RANGE[0], PORT_RANGE[1])
         client_socket.sendall(str(client_port).encode())
         client_socket.close()
@@ -213,7 +223,6 @@ if __name__ == "__main__":
         new_thread.start()
         MESSAGES.put(message)
         THREADS.put_nowait(new_thread)
-        # new_thread.join()
 
     while not THREADS.empty():
         THREADS.get().join()
