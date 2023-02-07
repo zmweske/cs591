@@ -1,3 +1,7 @@
+h1/server - Copy.py
+.gitignore
+h1/tmp/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
