@@ -1,6 +1,5 @@
-h1/server - Copy.py
 .gitignore
-h1/tmp/
+*/tmp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
