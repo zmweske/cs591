@@ -29,6 +29,7 @@ MESSAGES = queue.Queue()  # send messages from threads to main to be broadcasted
 ACTIVE_USERS = defaultdict(lambda: queue.Queue())  # send broadcasts back to threads
 ACTIVE_USERNAMES = {}
 LOGGING_OUT = queue.Queue()
+PROGRAM_LOCATION = os.path.dirname(__file__)
 
 STOP_COMMAND = False
 PORT_RANGE = [9001, 9999]
@@ -50,12 +51,13 @@ class connection_thread():
         self.server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server_socket.bind(("localhost", port))
         self.server_socket.listen(20)
-        # self.server_socket = ssl.wrap_socket(self.server_socket, ssl_version=ssl.PROTOCOL_TLSv1_2)
-        self.client_socket, addr = self.server_socket.accept()
+        self.ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        self.ssl_context.load_cert_chain(certfile=os.path.join(PROGRAM_LOCATION, "rootCA.pem"), keyfile=os.path.join(PROGRAM_LOCATION, "rootCA.key"))
+        self.sec_server_socket = self.ssl_context.wrap_socket(self.server_socket, server_side=True)#, ssl_version=ssl.PROTOCOL_TLSv1_2)  # TODO
+        self.client_socket, addr = self.sec_server_socket.accept()
         logging.info("User connect on port " + str(self.port) + ": " + self.uuid + 
                      {False: "(" + user + ")", True: "(without username)"}[user==uuid])
 
-        # spawn threads
         self.broadcast_listener = threading.Thread(target=self.listen_to_broadcast)
         self.client_listener = threading.Thread(target=self.accept_message)
         self.client_sender = threading.Thread(target=self.send_to_client)
@@ -184,7 +186,7 @@ if __name__ == "__main__":
     SERVER_PORT = int(args.SERVER_PORT)
 
     # set up logging to file as well as stdout
-    logging.basicConfig(filename=os.path.join(os.path.dirname(__file__), 'server.log'), 
+    logging.basicConfig(filename=os.path.join(PROGRAM_LOCATION, 'server.log'), 
                         encoding='utf-8', level=logging.DEBUG, filemode='w',
                         format='%(asctime)s - %(levelname)-7s - %(message)s')
     logging.getLogger().addHandler(logging.StreamHandler(sys.stdout))
@@ -196,6 +198,9 @@ if __name__ == "__main__":
     # server_socket = ssl.wrap_socket(server_socket, ssl_version=ssl.PROTOCOL_TLSv1_2)
     server_socket.bind(("localhost", SERVER_PORT))
     server_socket.listen(20)
+    ssl_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_context.load_cert_chain(certfile=os.path.join(PROGRAM_LOCATION, "rootCA.pem"), keyfile=os.path.join(PROGRAM_LOCATION, "rootCA.key"))
+    sec_server_socket = ssl_context.wrap_socket(server_socket, server_side=True)#, ssl_version=ssl.PROTOCOL_TLSv1_2)  # TODO
     logging.info("Serving on localhost:" + str(SERVER_PORT))
     
     # start broadcast listener thread (monitoring MESSAGES queue)
@@ -206,7 +211,7 @@ if __name__ == "__main__":
     while not STOP_COMMAND:
         # accept new client, process CONNECT request and prepare new connection_thread from message
         logging.info("Ready to accept new client on main thread...")
-        client_socket, addr = server_socket.accept()
+        client_socket, addr = sec_server_socket.accept()
         if not (message := client_socket.recv(1024).decode()).startswith("CONNECT"):
             client_socket.close()
             continue

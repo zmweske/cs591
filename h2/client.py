@@ -20,18 +20,20 @@ import socket
 import ssl
 import time
 import argparse
+import traceback
 import uuid
 import json
 import threading
 import sys
 import signal
+import os
 try:
     import curses
 except ModuleNotFoundError as e:
     print("Running on Windows? Install 'windows-curses' with")
     print("  pip install windows-curses")
     exit()
-
+PROGRAM_LOCATION = os.path.dirname(__file__)
 
 
 SERVER_ADDR = "localhost"
@@ -41,8 +43,8 @@ class chat_client():
     def __init__(self, SERVER_ADDR, SERVER_PORT, CUSTOM_PORT, UUID, USER):
         try:
             signal.signal(signal.SIGINT, self.signal_handler)
-            # print('Press Ctrl+C')
-            # signal.pause()
+
+            # initialize curses window
             stdscr = curses.initscr()
             # curses.cbreak()
             self.print_window = curses.newwin(curses.LINES - 1, curses.COLS, 0, 0)
@@ -51,36 +53,46 @@ class chat_client():
             self.print_window.refresh()
             self.to_print_after = []
             
+            # object variables
             self.STOP_COMMAND = False
             self.UUID = UUID
             self.USER = USER
             
+            # ssl library context creation
+            context = ssl.create_default_context()
+            context.load_verify_locations(cafile=os.path.join(PROGRAM_LOCATION, "rootCA.pem"))
+
+            # initialize primary socket connection with ssl context
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # client_socket = ssl.wrap_socket(client_socket, ssl_version=ssl.PROTOCOL_TLSv1_2)
+            client_socket = context.wrap_socket(client_socket, server_hostname="localhost")
             client_socket.connect((SERVER_ADDR, SERVER_PORT))
-            # client_socket.send(b"CONNECT " + UUID.encode())
+
+            # make connection attempt and receive new port for secondary connection
             message = ("CONNECT " + json.dumps({"user": self.USER, "uuid": self.UUID, "action": "CONNECT", "data": "has joined"})).encode()
             client_socket.send(message)
             new_port = int(client_socket.recv(1024).decode())
             client_socket.close()
             self.print("Attempting to begin new connection on port " + str(new_port))
-
-            self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # self.client_socket = ssl.wrap_socket(self.client_socket, ssl_version=ssl.PROTOCOL_SSLv23)
             time.sleep(0.2)
             if(CUSTOM_PORT != 0):
                 new_port = CUSTOM_PORT
+
+            # establish new self.client_socket ssl connection
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.client_socket = context.wrap_socket(client_socket, server_hostname="localhost")
             self.client_socket.connect((SERVER_ADDR, new_port))
             self.print("Connected to server!")
             
+            # spawn threads
             printing_thread = threading.Thread(target=self.monitor_socket)
             printing_thread.start()
             input_thread = threading.Thread(target=self.monitor_input)
             input_thread.start()
             
+            # attempt to gracefully shut everything down and print 
+            #   any messages to stdout after curses window closes
             input_thread.join()
             self.STOP_COMMAND = True
-            
             self.client_socket.close()
             # self.client_socket.shutdown(socket.SHUT_WR)
             # self.client_socket.setblocking(0)
@@ -103,10 +115,10 @@ class chat_client():
             except:
                 pass
             print("Client error: " + type(e).__name__)
-            # traceback.print_exc()
+            traceback.print_exc()
         
+    # attempt to gracefully handle ctrl+c while in a curses window
     def signal_handler(self, sig, frame):
-        # print('You pressed Ctrl+C!')
         self.print("Quitting, press a key followed by ctrl+z to continue...")
         self.STOP_COMMAND = True
         try:
@@ -115,6 +127,7 @@ class chat_client():
             pass
         sys.exit(0)
 
+    # replace the standard print function to print to curses print window
     def print(self, to_print):
         try:
             self.print_window.addstr(str(to_print) + '\n')
@@ -122,10 +135,12 @@ class chat_client():
         except:
             pass
 
+    # call self.print after attempting to force critical information to be printed after curses window closes
     def print_e(self, to_print):
         self.to_print_after.append(to_print)
         self.print(to_print)
         
+    # a function spawned to a new thread used for monitoring the socket connection
     def monitor_socket(self):
         while not self.STOP_COMMAND:
             try:
@@ -135,8 +150,6 @@ class chat_client():
                     self.print("Connection closed by server, press any key to quit...")
                     continue
                 self.print({True: "No data received", False: data}[data == ''])  # '\r' + '\033[K' + 
-                # if not self.STOP_COMMAND:
-                #     print("> ")
             # except socket.timeout:
             #     continue
             except Exception as e:
@@ -144,27 +157,17 @@ class chat_client():
                 self.STOP_COMMAND = True
                 continue
             
+    # a function spawned to a new thread used for monitoring user text input
     def monitor_input(self):
-        # while not self.STOP_COMMAND:
-        #     try:
-        #         chat = input("> ")
-        #     except EOFError as e:
-        #         chat = '\x04'
-        #     if chat.strip() == "":
-        #         continue
-        #     self.client_socket.send((chat).encode())  # TODO convert to action instead of message with json?
-        #     if chat == '\x04' or chat == "QUIT":
-        #         print("Exiting client...")
-        #         self.STOP_COMMAND = True
-        #         continue
-        # while (not self.STOP_COMMAND and char != 4 and stuff != "QUIT" and stuff != "^D" and stuff != '\x04'):
         while not self.STOP_COMMAND:
             self.input_window.addstr("> ")
             chat = ""
             char = self.input_window.getch()
             while char != 10 and char != 4 and not self.STOP_COMMAND:
-                if char < 127 and char > 31:
+                # if character is printable
+                if char > 31 and char != 127:
                     chat += chr(char)
+                # user pressed backspace
                 elif char == 127:
                     self.input_window.move(0, max(2, self.input_window.getyx()[1] - 3))
                     self.input_window.addstr("   ")
@@ -173,6 +176,7 @@ class chat_client():
                     chat = chat[:-1]
                 char = self.input_window.getch()
 
+            # handle user attempts to quit (includes ctrl+d or EOF)
             if char == 4 or chat == "QUIT" or chat == '\x04' or chat == "^D":
                 self.STOP_COMMAND = True
                 chat = "QUIT"
@@ -183,8 +187,6 @@ class chat_client():
                     pass
             self.print(chat)
             self.input_window.clear()
-            # self.print_window.addstr(str(chat) + '\n')
-            # self.print_window.refresh()
         self.print("Exiting client, press any key to close...")
         self.input_window.getch()
 
