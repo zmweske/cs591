@@ -7,7 +7,8 @@
     python server.py
     - runs simple server on localhost:SERVER_PORT
 
-    # python server.py
+    python server.py --help
+    - gives additional usage information
 """
 
 import socket
@@ -24,15 +25,14 @@ import os
 from collections import defaultdict
 
 SERVER_PORT = 8888
+PORT_RANGE = [9001, 9999]
 THREADS = queue.Queue()
 MESSAGES = queue.Queue()  # send messages from threads to main to be broadcasted
 ACTIVE_USERS = defaultdict(lambda: queue.Queue())  # send broadcasts back to threads
-ACTIVE_USERNAMES = {}
+ACTIVE_USERNAMES = {}  # pairs uuid to username
 LOGGING_OUT = queue.Queue()
 PROGRAM_LOCATION = os.path.dirname(__file__)
-
 STOP_COMMAND = False
-PORT_RANGE = [9001, 9999]
 
 
 # the thread spawned when a new client connects to the server
@@ -55,8 +55,7 @@ class connection_thread():
         self.ssl_context.load_cert_chain(certfile=os.path.join(PROGRAM_LOCATION, "rootCA.pem"), keyfile=os.path.join(PROGRAM_LOCATION, "rootCA.key"))
         self.sec_server_socket = self.ssl_context.wrap_socket(self.server_socket, server_side=True)#, ssl_version=ssl.PROTOCOL_TLSv1_2)  # TODO
         self.client_socket, addr = self.sec_server_socket.accept()
-        logging.info("User connect on port " + str(self.port) + ": " + self.uuid + 
-                     {False: "(" + user + ")", True: "(without username)"}[user==uuid])
+        logging.info("User connect on port " + str(self.port) + ": " + self.uuid + {False: "(" + user + ")", True: "(without username)"}[user==uuid])
 
         self.broadcast_listener = threading.Thread(target=self.listen_to_broadcast)
         self.client_listener = threading.Thread(target=self.accept_message)
@@ -72,6 +71,8 @@ class connection_thread():
         try:  # client socket may already be closed, but this will prevent a blocking client thread
             self.client_socket.send(b' ')
         except BrokenPipeError as e:
+            pass
+        except Exception as e:
             pass
         self.client_sender.join()
         logging.info("Logging out user " + self.uuid + {False: "(" + self.user + ")", True: ""}[self.user==self.uuid])
@@ -156,6 +157,7 @@ def broadcast_listener():
         uuid = json_msg["uuid"]
         user = json_msg["user"]
         
+        # if json_msg["action"] != "QUIT":
         logging.info(uuid + {False: "(" + user + ")", True: ""}[user==uuid] + {False:": ",True:" "}[json_msg["action"]=="CONNECT"] + json_msg["data"])
         
         for i in ACTIVE_USERS:

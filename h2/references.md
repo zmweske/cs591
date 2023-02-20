@@ -7,9 +7,10 @@
 
 ## Stack Overflow:
 - https://stackoverflow.com/questions/26851034/opening-a-ssl-socket-connection-in-python
+- https://stackoverflow.com/questions/61307557/self-signed-certificate-with-python-ssl-socket
 
 ## Misc.:
-- https://gist.github.com/Oborichkin/d8d0c7823fd6db3abeb25f69352a5299
+- https://gist.github.com/marshalhayes/ca9508f97d673b6fb73ba64a67b76ce8
 - https://pythontic.com/ssl/sslsocket/introduction
 
 

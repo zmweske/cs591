@@ -3,17 +3,12 @@
 # Homework 2
 #   tls client component
 
-""" Usage: 
+""" Usage:
     python client.py
-    - runs with default SERVER_ADDR:SERVER_PORT and 
-      will continue to ask for files to retrieve until
-      "quit" or "^D" (ctrl+d) is sent
+    - runs with default SERVER_ADDR:SERVER_PORT
     
-    python client.py [ADDRESS] [PORT]
-    - same as above but with specified ADDRESS:PORT
-
-    python client.py [ADDRESS] [PORT] [FILE]
-    - attempts to retrieve FILE from ADDRESS:PORT once and exits
+    python client.py --help
+    - gives additional usage information
 """
 
 import socket
@@ -60,7 +55,7 @@ class chat_client():
             
             # ssl library context creation
             context = ssl.create_default_context()
-            context.load_verify_locations(cafile=os.path.join(PROGRAM_LOCATION, "rootCA.pem"))
+            context.load_verify_locations(cafile=os.path.join(PROGRAM_LOCATION, "rootCA.pem"))  # trust new rootCA
 
             # initialize primary socket connection with ssl context
             client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -163,17 +158,17 @@ class chat_client():
             self.input_window.addstr("> ")
             chat = ""
             char = self.input_window.getch()
-            while char != 10 and char != 4 and not self.STOP_COMMAND:
-                # if character is printable
-                if char > 31 and char != 127:
-                    chat += chr(char)
+            while char != 10 and char != 4 and not self.STOP_COMMAND:  # enter and EOF/ctrl+d
                 # user pressed backspace
-                elif char == 127:
+                if char == 127:
                     self.input_window.move(0, max(2, self.input_window.getyx()[1] - 3))
                     self.input_window.addstr("   ")
                     self.input_window.move(0, max(2, self.input_window.getyx()[1] - 3))
                     self.input_window.refresh()
                     chat = chat[:-1]
+                # if character is printable ascii
+                elif char > 31:
+                    chat += chr(char)
                 char = self.input_window.getch()
 
             # handle user attempts to quit (includes ctrl+d or EOF)
