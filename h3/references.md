@@ -3,3 +3,5 @@ https://hub.docker.com/_/redis
 https://geshan.com.np/blog/2022/01/redis-docker/
 https://docs.redis.com/latest/rs/references/client_references/client_python/
 https://docs.redis.com/latest/rs/security/tls/enable-tls/
+https://www.distributed-systems.net/index.php/books/ds3/
+https://www.distributed-systems.net/my-data/ds3/codelistings.zip
