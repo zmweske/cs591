@@ -1,6 +1,8 @@
 # cs591 Homework 3
 
-#### Multithreaded client & server with SSL/TLS: see the [project documentation](HomeWork3.pdf) for more information
+Multithreaded client & server with SSL/TLS: see the [project documentation](HomeWork3.pdf) for more information
+
+### This application now uses redis, which must be running before starting the server. 
 
 ## Usage: server.py
 
