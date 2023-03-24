@@ -18,7 +18,7 @@ PROGRAM_LOCATION = os.path.dirname(__file__)
 
 # the thread spawned when a new client connects to the server
 class connection_thread():
-    def __init__(self, port, uuid, user, redis_host, redis_port, redis_pwd):
+    def __init__(self, port:int, uuid:str, user:str, redis_host:str, redis_port:int, redis_pwd:str):
         self.user = user
         self.uuid = uuid
         self.redis = redis.Redis(host=redis_host, port=redis_port, decode_responses=True, password=redis_pwd)

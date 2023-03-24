@@ -73,7 +73,11 @@ class chat_server():
             print("Connection to redis database refused.")
             print("  Is it running and are connection settings correct? use '--help' for more information")
             sys.exit()
-        input()
+        except ConnectionError:
+            print("Connection to redis database refused.")
+            print("  Is it running and are connection settings correct? use '--help' for more information")
+            sys.exit()
+        # input()
         self.active_usernames = {}  # pairs uuid to username
 
         # set up logging to file as well as stdout
@@ -118,7 +122,7 @@ class chat_server():
             try:
                 json_msg = json.loads(message)
             except:
-                logging.warning("server.py:114  error parsing connection json request: " + str(message))
+                logging.warning("server.py:125  error parsing connection json request: " + str(message))
                 continue
             # select new random port in range and send to client
             client_port = random.randrange(PORT_RANGE[0], PORT_RANGE[1])
@@ -144,7 +148,7 @@ class chat_server():
             try:
                 json_msg = json.loads(message["data"])  # pull this dict out of redis data dict
             except Exception as e:
-                logging.warning("server.py:137  redis msg decode warning: " + type(e).__name__ + ' ' + str(e))
+                logging.warning("server.py:151  redis msg decode warning: " + type(e).__name__ + ' ' + str(e))
                 continue
             
             uuid = json_msg["uuid"]
@@ -174,10 +178,14 @@ class chat_server():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--port", action="store", dest="SERVER_PORT", default=SERVER_PORT)
-    parser.add_argument("-r", "--redis_host", action="store", dest="REDIS_HOST", default=REDIS_HOST)
-    parser.add_argument("-rp", "--redis_port", action="store", dest="REDIS_PORT", default=REDIS_PORT)
-    parser.add_argument("-rpwd", "--redis_pwd", action="store", dest="REDIS_PWD", default=REDIS_PWD)
+    parser.add_argument("-p", "--port", action="store", dest="  PORT", default=SERVER_PORT, 
+                        help="The port to run the server on. Default: " + str(SERVER_PORT))
+    parser.add_argument("-r", "--redis_host", action="store", dest="REDIS_HOST", default=REDIS_HOST, 
+                        help="The redis host. Default: " + str(REDIS_HOST))
+    parser.add_argument("-rp", "--redis_port", action="store", dest="REDIS_PORT", default=REDIS_PORT,
+                        help="The port redis is running on. Default: " + str(REDIS_PORT))
+    parser.add_argument("-rpwd", "--redis_pwd", action="store", dest="REDIS_PWD", default=REDIS_PWD,
+                        help="The password to be used with redis. Default: " + str(REDIS_PWD))
     args = parser.parse_args()
     REDIS_HOST = args.REDIS_HOST
     REDIS_PORT = int(args.REDIS_PORT)

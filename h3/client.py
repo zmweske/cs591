@@ -35,7 +35,7 @@ SERVER_ADDR = "localhost"
 SERVER_PORT = 8888
 
 class chat_client():
-    def __init__(self, SERVER_ADDR, SERVER_PORT, CUSTOM_PORT, UUID, USER):
+    def __init__(self, SERVER_ADDR:str, SERVER_PORT:int, UUID:str, USER:str, CUSTOM_PORT:int=0):
         try:
             signal.signal(signal.SIGINT, self.signal_handler)
 
@@ -123,7 +123,7 @@ class chat_client():
         sys.exit(0)
 
     # replace the standard print function to print to curses print window
-    def print(self, to_print):
+    def print(self, to_print:str):
         try:
             self.print_window.addstr(str(to_print) + '\n')
             self.print_window.refresh()
@@ -131,7 +131,7 @@ class chat_client():
             pass
 
     # call self.print after attempting to force critical information to be printed after curses window closes
-    def print_e(self, to_print):
+    def print_e(self, to_print:str):
         self.to_print_after.append(to_print)
         self.print(to_print)
         
@@ -191,10 +191,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     UUID = str(uuid.uuid4())
 
-    parser.add_argument("-a", "--address", action="store", dest="SERVER_ADDR", default=SERVER_ADDR)
-    parser.add_argument("-p", "--port",    action="store", dest="SERVER_PORT", default=SERVER_PORT)
-    parser.add_argument("-u", "--user", "--username", "--name", action="store", dest="USER", default=UUID)
-    parser.add_argument("-c", "--custom_port", action="store", dest="CUSTOM_PORT", default=0)
+    parser.add_argument("-a", "--address", action="store", dest="SERVER_ADDR", default=SERVER_ADDR,
+                        help="The address of the server to connect to. Default: " + str(SERVER_ADDR))
+    parser.add_argument("-p", "--port",    action="store", dest="SERVER_PORT", default=SERVER_PORT,
+                        help="The port of the server to connect to. Default: " + str(SERVER_PORT))
+    parser.add_argument("-u", "--user", "--username", "--name", action="store", dest="USER", default=UUID,
+                        help="The username to log in with. If left blank, it will be the randomly generated UUID.")
+    parser.add_argument("-c", "--custom_port", action="store", dest="CUSTOM_PORT", default=0,
+                        help="Used for testing to manually override the secondary connection port.")
     args = parser.parse_args()
 
-    client_connection_obj = chat_client(args.SERVER_ADDR, int(args.SERVER_PORT), int(args.CUSTOM_PORT), UUID, args.USER)
+    client_connection_obj = chat_client(args.SERVER_ADDR, int(args.SERVER_PORT), UUID, args.USER, int(args.CUSTOM_PORT))
