@@ -4,7 +4,7 @@ Multithreaded client & server with SSL/TLS: see the [project documentation](Home
 
 <br/>
 
-### This application now uses redis, which must be running before starting the server. With docker & docker compose installed, run `docker-compose up -d` in this directory to start redis in the pre-configured state. 
+### This application now uses redis, which must be running before starting the server. With docker & docker compose installed, run `docker-compose up -d` in this directory to start redis in the pre-configured state. To stop the redis instance, `docker-compose down` can be used. 
 
 <br/>
 

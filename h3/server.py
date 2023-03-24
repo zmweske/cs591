@@ -178,7 +178,7 @@ class chat_server():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-p", "--port", action="store", dest="  PORT", default=SERVER_PORT, 
+    parser.add_argument("-p", "--port", action="store", dest="PORT", default=SERVER_PORT, 
                         help="The port to run the server on. Default: " + str(SERVER_PORT))
     parser.add_argument("-r", "--redis_host", action="store", dest="REDIS_HOST", default=REDIS_HOST, 
                         help="The redis host. Default: " + str(REDIS_HOST))
@@ -187,10 +187,10 @@ if __name__ == "__main__":
     parser.add_argument("-rpwd", "--redis_pwd", action="store", dest="REDIS_PWD", default=REDIS_PWD,
                         help="The password to be used with redis. Default: " + str(REDIS_PWD))
     args = parser.parse_args()
-    REDIS_HOST = args.REDIS_HOST
     REDIS_PORT = int(args.REDIS_PORT)
+    SERVER_PORT = int(args.PORT)
+    REDIS_HOST = args.REDIS_HOST
     REDIS_PWD = args.REDIS_PWD
-    SERVER_PORT = int(args.SERVER_PORT)
     
     t = chat_server()
     
