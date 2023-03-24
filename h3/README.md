@@ -2,7 +2,11 @@
 
 Multithreaded client & server with SSL/TLS: see the [project documentation](HomeWork3.pdf) for more information
 
-### This application now uses redis, which must be running before starting the server. 
+<br/>
+
+### This application now uses redis, which must be running before starting the server. With docker & docker compose installed, run `docker-compose up -d` in this directory to start redis in the pre-configured state. 
+
+<br/>
 
 ## Usage: server.py
 
