@@ -12,5 +12,7 @@ See [`h3/`](h3/) for details on homework 3.
 - [x] use redis for backend server communication
 - [X] more useful `--help` messages
 - [X] added parameter types to functions
+- [ ] be able to monitor if the client gets killed
+- [ ] make the chat history scrollable
 - [ ] safe/clean handling for redis server not running
 - [ ] make client/server connection entirely API/json based?
