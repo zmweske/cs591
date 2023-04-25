@@ -3,6 +3,7 @@
 See [`h1/`](h1/) for details on homework 1.  
 See [`h2/`](h2/) for details on homework 2.  
 See [`h3/`](h3/) for details on homework 3.  
+See [`h5/`](h5/) for details on homework 3.  
 
 ### Potential Improvements
 - [x] convert ui to use ncurses
