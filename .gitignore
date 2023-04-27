@@ -1,6 +1,7 @@
 .gitignore
 */tmp/
 textbook-ref/
+*-cs591-hw*.zip
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
